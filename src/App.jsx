@@ -1,18 +1,52 @@
 import "./App.css";
-import tts_img from "./assets/text-to-speech.png";
-import React,{useState} from "react";
+import React, { useState ,useRef} from "react";
+const SPEED_VALUES = {
+  0: "very_slow",
+  25: "slow",
+  50: "normal",
+  75: "fast",
+  100: "very_fast",
+};
 function App() {
-  const [speedValue, setSpeedValue] = useState(0);
+  const audioRef = useRef()
+  const [speedValue, setSpeedValue] = useState(50);
   const [text, setText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState("null");
+  const [result, setResult] = useState(null);
   React.useEffect(() => {
     if (isLoading) {
-
-          setResult("ok");
+      var requestOptions = {
+        method: "GET",
+        redirect: "follow",
+      };
+      fetch(
+        "http://" +
+          window.location.host +
+          "/tts?text=" +
+          text +
+          "&speed=" +
+          SPEED_VALUES[speedValue],
+        requestOptions
+      )
+        .then((response) => response.json())
+        .then((jsonResult) => {
+          setResult(jsonResult);
+          updateSong()
+        })
+        .catch((error) => console.log("error", error))
+        .finally(() => {
           setIsLoading(false);
+        });
     }
   }, [isLoading]);
+
+  const updateSong = () => {
+    // setSource(source);
+    if(audioRef.current){
+        audioRef.current.pause();
+        audioRef.current.load();
+    }
+}
 
   const handleTextChange = (event) => {
     setText(event.target.value);
@@ -23,8 +57,9 @@ function App() {
   };
 
   const handleClick = () => {
-    console.log(text);
-    setIsLoading(true)
+    if (text !==""){
+      setIsLoading(true);
+    }
   };
   return (
     <div className="flex justify-center">
@@ -58,7 +93,7 @@ function App() {
           <div className="w-full flex justify-between text-xs px-2 pb-3">
             <span className="font-medium">Chậm</span>
             <span>|</span>
-            <span>|</span>
+            <span className="font-medium">Vừa</span>
             <span>|</span>
             <span className="font-medium">Nhanh</span>
           </div>
@@ -68,10 +103,23 @@ function App() {
               onClick={handleClick}
               className="btn btn-md btn-info"
             >
-             {isLoading ? <span class="loading loading-dots loading-sm"></span>:"Chuyển đổi"} 
+              {isLoading ? (
+                <span className="loading loading-dots loading-sm"></span>
+              ) : (
+                "Chuyển đổi"
+              )}
             </button>
-            {result && <div>{result}</div>}
           </div>
+          {result && (
+            <div className="mt-10 mb-4">
+              <span className="font-medium mt-3">Kết quả</span>
+              <audio controls ref={audioRef} >
+                <source src={result.audio_url} type="audio/wav" />
+                Your browser does not support the audio element.
+              </audio>
+              <a className="link" target="_blank" href={result.audio_url}>Download</a>
+            </div>
+          )}
         </div>
       </div>
     </div>
